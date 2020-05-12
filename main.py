@@ -6,6 +6,7 @@
 import requests
 import time
 import json
+import config
 from datetime import datetime
 import argparse 
 from colorama import init, Fore, Back, Style
@@ -18,12 +19,8 @@ parser.add_argument('-l', '--language', type=str, default='python', help='Enter 
 parser.add_argument('-c', '--command', type=str, help='Enter query')
 args = parser.parse_args()    
 
-# Databricks instance settings
-DATABRICKS_INSTANCE = '{YOUR_DATABASE_INSTANCE_URL}'
-PERSONAL_TOKEN = '{PERSONAL_ACCESS_TOKEN}'
-
 def call_api(endpoint, params, payload, method, content_type='application/json'):
-    headers = {'Authorization': 'Bearer {}'.format(PERSONAL_TOKEN), 'Content-Type':content_type}
+    headers = {'Authorization': 'Bearer {}'.format(config.PERSONAL_TOKEN), 'Content-Type':content_type}
     try:
         if method == 'GET':
             r = requests.get(url=endpoint, headers=headers, params=params)
@@ -36,7 +33,7 @@ def call_api(endpoint, params, payload, method, content_type='application/json')
 
 # Pre-step - List all existing clusters
 if args.cluster_id is None:
-    endpoint = 'https://{}/api/2.0/clusters/list'.format(DATABRICKS_INSTANCE)
+    endpoint = 'https://{}/api/2.0/clusters/list'.format(config.DATABRICKS_INSTANCE)
     status_code, res = call_api(endpoint,None,None,'GET')
     
     for i in enumerate(res['clusters']):
@@ -47,7 +44,7 @@ if args.cluster_id is None:
                 i[1]['cluster_source'], i[1]['cluster_id'], i[1]['cluster_name'], i[1]['spark_version'], i[1]['driver_node_type_id'], i[1]['node_type_id'], i[1]['worker_nodes'],i[1]['state']))
 else:
     # Step 1 - Create execution context 
-    endpoint = 'https://{}/api/1.2/contexts/create'.format(DATABRICKS_INSTANCE)
+    endpoint = 'https://{}/api/1.2/contexts/create'.format(config.DATABRICKS_INSTANCE)
     payload = {'language': args.language, 'clusterId': args.cluster_id}
     status_code, res = call_api(endpoint,None,payload,'POST')
     if status_code == 200:
@@ -58,7 +55,7 @@ else:
         exit(0)
 
     # Step 2 - Submit query (or file) 
-    endpoint = 'https://{}/api/1.2/commands/execute'.format(DATABRICKS_INSTANCE)
+    endpoint = 'https://{}/api/1.2/commands/execute'.format(config.DATABRICKS_INSTANCE)
     payload = {
         'language': 'python', 
         'clusterId': args.cluster_id, 
@@ -77,7 +74,7 @@ else:
     print(Style.RESET_ALL)
     print('Checking status every 5 seconds...')
     while True:
-        endpoint = 'https://{}/api/1.2/commands/status'.format(DATABRICKS_INSTANCE)
+        endpoint = 'https://{}/api/1.2/commands/status'.format(config.DATABRICKS_INSTANCE)
         params = {
             'clusterId': args.cluster_id, 
             'contextId' : context_id, 
